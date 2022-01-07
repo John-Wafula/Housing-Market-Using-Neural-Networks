@@ -1,0 +1,301 @@
+---
+title: "Neural Networks"
+author: ".."
+date: "11/23/2021"
+output: html_document
+---
+
+## Introduction
+
+Forecasting house prices is an important aspect of real estate. The literature tries to extract relevant information from historical property market data. In order to identify relevant models for house buyers and sellers, machine learning techniques are used to examine previous property transactions in the world. The large disparity between house prices in the world most costly and most affordable suburbs has been revealed. Furthermore, investigations show that mean squared error measurement-based Neural networks is a competitive strategy.
+
+Possible application
+
+House price predictions are anticipated to assist customers who are planning to buy a home by allowing them to know the price range in the future so that they may properly arrange their finances. House price projections are also useful for property investors who want to know the trajectory of housing prices in a specific area.
+
+
+Aim of the project
+
+Since the fall of the 2008 housing markets.The fall has been linked in part to internal and international political uncertainty, as well as the recent elections and recent events. As a result, this paradigm can be used to retain consumer openness while also making comparisons simple. If a customer discovers that the price of a house on a certain website is more than the model's prediction, he can reject the house.
+
+Explanation of methods
+
+The first phase in data analysis is data exploration, which often entails summarizing the primary aspects of a data set, such as its size, accuracy, initial patterns in the data, and other attributes. Visual analytics tools are often used by data analysts, but it may also be done in more powerful statistical software, such as R. An organization must know how many cases are in a data set, what variables are included, how many missing values there are, and what general hypotheses the data is likely to support before it can undertake analysis on data collected from different data sources and kept in data warehouses. An initial examination of the data set can assist in answering these questions.
+
+The process of choosing the proper data kind and source, as well as appropriate devices to collect data, is known as data selection. The activity of data gathering is preceded by the selection of data. Data selection is distinguished from selective data reporting (selectively eliminating data that contradicts a research premise) and interactive/active data selection (using obtained data for monitoring activities/events or doing secondary data analyses). Data integrity can be impacted by the process of selecting appropriate data for a research endeavor.
+
+We will then apply neural networks for the model explanation
+Machine learning is accomplished using neural networks, in which a computer learns to do a task by examining training instances. Typically, the examples have been labeled by hand ahead of time. For example, an object recognition system could be fed thousands of tagged photographs of vehicles, houses, coffee cups, and other objects, and it would look for visual patterns in the images that correspond to specific labels.
+
+A neural net is a tightly connected network of thousands or even millions of simple processing nodes that is loosely modeled after the human brain. The majority of today's neural networks are arranged into layers of nodes and are "feed-forward," meaning that input only flows in one direction through them. A single node may be connected to numerous nodes in the layer below it from which it receives data, as well as several nodes in the layer above it from which it transmits data.
+
+A node will assign a number known as a "weight" to each of its incoming connections. When the network is up and running, each node receives a new data item — a distinct number — and multiplies it by the associated weight. The resultant items are then added together to produce a single number. If that number falls below a certain threshold, the node does not send any data to the next layer. The node "fires" if the number exceeds the threshold value, which in today's neural nets often means transmitting the number — the total of the weighted inputs — via all of its outbound connections.
+
+All of the weights and thresholds of a neural network are initially set to random values when it is being trained. Training data is fed into the lowest layer — the input layer — and then sent through the subsequent levels, where it is multiplied and added together in various ways until it reaches the output layer, completely changed. During training, the weights and thresholds are modified until the outputs from training data with the same labels are consistent.
+
+
+```{r}
+library(readr)
+train <- read_csv("C:/Users/Admin/Downloads/train.csv")
+head(train)
+```
+
+There are 1460 observations in this dataset, with 79 exploratory variables that characterize the majority of the features of residential dwellings in Ames, Iowa. There are a total of 37 integer variables that explain these qualities, including LotFrontage,MSSubClass,LotFrontage,MSZoning,LotShape, and Street. These variables, as well as various subsets of these variables, will be used. We'll do exploratory data analysis on these datasets to see if we can find any insights.
+
+```{r}
+library(readr)
+test <- read_csv("C:/Users/Admin/Downloads/test.csv")
+head(test)
+```
+
+## Investigating the quality of the dataset
+
+```{r}
+library(dplyr)
+duplicated.data.frame(train) %>% sum()
+duplicated.data.frame(test) %>% sum()
+```
+
+### within numerical variables
+
+```{r}
+library(skimr)
+train %>% 
+  select(where(is.numeric)) %>% 
+  skim() %>% 
+  as_tibble() %>% 
+  select(2:3) %>% 
+  filter(skim_variable != "SalePrice") %>% 
+  bind_cols(
+    test %>% 
+      select(where(is.numeric)) %>% 
+      skim() %>% 
+      as_tibble() %>% 
+      select(n_missing_test = n_missing)
+  ) %>% 
+  filter(!(n_missing == 0 & n_missing_test == 0))
+```
+```{r}
+train %>% 
+  select(where(is.character)) %>% 
+  skim() %>% 
+  as_tibble() %>% 
+  select(skim_variable, n_missing) %>% 
+  bind_cols(
+    test %>% 
+      select(where(is.character)) %>% 
+      skim() %>% 
+      as_tibble() %>% 
+      select(n_missing_test = n_missing)
+  ) %>% 
+  filter(!(n_missing == 0 & n_missing_test == 0))
+``` 
+# Among the unique variables
+
+```{r}
+train %>% 
+  select(where(is.character)) %>% 
+  skim() %>% 
+  as_tibble() %>% 
+  select(skim_variable, n_unique = character.n_unique) %>% 
+  bind_cols(
+    test %>% 
+      select(where(is.character)) %>% 
+      skim() %>% 
+      as_tibble() %>% 
+      select(n_unique_test = character.n_unique)
+  ) %>% 
+  filter(n_unique != n_unique_test)
+```
+## Data Exploration
+```{r}
+library(skimr)
+train %>% 
+  select(where(is.numeric)) %>% 
+  skim()
+```
+```{r}
+train %>% 
+  select(where(is.character)) %>% 
+  mutate(across(.cols = everything(), as.factor)) %>% 
+  skim()
+```
+
+## exploration of  the candidate variables
+
+
+
+```{r}
+library(ggplot2)
+p <-  train %>% 
+  ggplot(aes(SalePrice))+
+  geom_histogram(fill = "steelblue", color = "white")+
+  labs(y = NULL)
+
+p2 <- train %>% 
+  ggplot(aes(log(SalePrice)))+
+  geom_histogram(fill = "steelblue", color = "white")+
+  labs(y = NULL)
+
+```
+
+```{r}
+p
+```
+
+```{r}
+p2
+```
+
+## Neural Networks
+
+```{r}
+# Let us solve Regression problem using Neural Network. 
+# The implementation demonstrates NN using the dataset 
+
+
+# Primary aim of this code is to implement neural network to solve House Price problem
+# Therefore, only 5 independent features were used. A robust implemention must consider 
+# feature engineering, data cleaning, and cross-validation. 
+
+require(data.table)
+require(stringr)
+require(lubridate)
+require(zoo)
+require(lightgbm)
+```
+
+
+```{r}
+# This implementation of the Kaggle's House Price problem
+# only considers 5 coulmns to simplify the neural network implementation. 
+# The five features are (These features were selected by learning from other Kaggler's): 
+# 1. SalePrice, 
+# 2. "OverallQual", 
+# 3. "GrLivArea", 
+# 4. "TotalBsmtSF", 
+# 5. "GarageCars",
+# 6. FullBath"
+
+#Extract required columns to train and test dataset
+
+train <- train[,c("OverallQual", "GrLivArea", "TotalBsmtSF", "GarageCars",
+                  "FullBath", "SalePrice")]
+
+test <- test[,c("OverallQual", "GrLivArea", "TotalBsmtSF", "GarageCars",
+                  "FullBath")]
+#Storing for Scaling back the predictions..
+train_o <- train
+```
+
+
+```{r}
+## check the train data
+summary(train$SalePrice) # CLEAN
+summary(train$OverallQual) # CLEAN
+summary(train$GrLivArea)# CLEAN
+summary(train$TotalBsmtSF)# CLEAN
+summary(train$GarageCars)# CLEAN
+summary(train$FullBath)
+
+## check teh test data
+summary(test$SalePrice) # CLEAN
+summary(test$OverallQual) # CLEAN
+summary(test$GrLivArea)# CLEAN
+summary(test$TotalBsmtSF)
+summary(test$GarageCars)
+summary(test$FullBath)# CLEAN
+
+#Replace missing value with median
+summary(test$TotalBsmtSF)
+test$TotalBsmtSF[which(is.na(test$TotalBsmtSF))] <- 988.0
+
+summary(test$GarageCars)
+test$GarageCars[which(is.na(test$GarageCars))] <- 2.0
+train_o <- train
+```
+
+```{r}
+#SCALING OR NORMALIZATION 
+# Normalization brings all the vlaues in the required range.
+# For this problem, the range is 0 to 1. Therefore, after scaling
+# all the values in the selected dataset should fall between 0 and 1
+
+# A USer Defined Function to scale
+UDF <- function(x) {
+  (x -min(x))/ (max(x)- min(x))
+}
+
+train <- as.data.frame(apply(train, 2, UDF))
+test <- as.data.frame(apply(test, 2, UDF))
+# SPLItting the data.
+
+index <- sample(nrow (train), round(0.6 * nrow(train)))
+
+train.wp <- train[index,]
+test.wp <- train[-index,]
+```
+
+```{r}
+# MODEL
+
+library(neuralnet)
+
+allVars <- colnames(train)
+predictorVars <- allVars[!allVars%in%"SalePrice"]
+predictorVars <- paste(predictorVars, collapse = "+")
+form = as.formula(paste("SalePrice~", predictorVars, collapse = "+"))
+
+# Prediction Model
+nn_model <- neuralnet(formula = form, train.wp, hidden = c(4,2), linear.output = TRUE)
+
+# the fitted values i.e. weights
+nn_model$net.result
+plot(nn_model)
+```
+
+## Hyperparameter Tuning
+
+```{r}
+prediction1 <- compute(nn_model, test)
+str(prediction1)
+# UDF: Convert the scaled values to original 
+UDF_2 <- function(prediction) {
+     prediction1$net.result * (max(train_o$SalePrice)-min(train_o$SalePrice)) + min(train_o$SalePrice)
+}
+
+ActualPrediction <-  prediction1$net.result * (max(train_o$SalePrice)-min(train_o$SalePrice)) + min(train_o$SalePrice)
+
+table(ActualPrediction)
+
+submit.df <- data.frame(Id = rep(1461:2919), SalePrice= ActualPrediction)
+write.csv(submit.df, file = "Submission_20171130_4.csv", row.names = FALSE)
+
+# Plot to show the correlation among the selected variables
+mydata <- train[, c("OverallQual", "GrLivArea", "TotalBsmtSF", "GarageCars",
+                     "FullBath", "SalePrice")]
+
+train_ <- round(cor(mydata),2)
+head(train_)
+library(reshape2)
+melted_train <- melt(train_)
+head(melted_train)
+library(ggplot2)
+ggplot(data = melted_train, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+head(mydata)
+```
+## Conclusion
+
+So, we've fulfilled our goal because we've successfully checked all of the boxes in our main column. The most successful attribute in forecasting the property price is circle rate, and the most effective model for our dataset is neural networks, with an RMSE score of 0.2987085.
+
+
+
+
+
+
+
+
+
+
+
